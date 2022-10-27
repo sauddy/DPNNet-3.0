@@ -18,7 +18,8 @@ def load_parameter_csv(folder_address):
     With each simulation there are 150 RT images after image augmentation
 
     '''
-    parameter_file = pd.read_csv(folder_address + 'cluster_run_1.csv')
+    #parameter_file = pd.read_csv(folder_address + 'cluster_run_1.csv')
+    parameter_file = pd.read_csv(folder_address + 'cluster_run_1-700.csv')
     return parameter_file
 
 
@@ -44,9 +45,9 @@ def create_complete_data_csv(list_sorted_RT_path ,path):
             # print("Reading images from the updated folder")
             list_image_path = glob.glob(path_image+'/'+"*.png") ## list of the path to each image in the RT folder
 
-        df_images_folder =pd.DataFrame(list_image_path) ## making a dataframe with the images path
+        df_images_folder =pd.DataFrame(list_image_path,columns=["image_path"]) ## making a dataframe with the images path
 
-        df_images_folder.columns = ["image_path"]  ## columm name with image_path
+       #df_images_folder.columns = ["image_path"]  ## columm name with image_path
         
         
         parameter_df = load_parameter_csv(path) ## loading the sim parameters csv file
@@ -74,7 +75,7 @@ def create_complete_data_csv(list_sorted_RT_path ,path):
 def parse_dataset(dataset_path, filtering=True,drop=None):
     '''
     Input : Address to the data folder
-    Filtering : To select the data
+    F,columns=["image_path"]iltering : To select the data
     Drop: If true it drops all feature except Aspect ratio
     Output : Return a csv with parameter data and path to the image
 
