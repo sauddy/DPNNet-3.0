@@ -65,10 +65,10 @@ def create_complete_data_csv(list_sorted_RT_path ,path):
         # Appending the data from the pandas dataframe for each orbits
         dataset_complete.append(dataset_each_sim)
 
-    print("[INFO]: Contatinating the paths of all the RT images is now complete")
+    
     dataset_complete = pd.concat(dataset_complete, ignore_index=True, axis=0)
     dataset_complete.to_csv(path+'data_folder/dataset_complete.csv') 
-
+    print("[INFO]: Contatination of the paths of all the RT images are now complete")
     return dataset_complete
 
 
@@ -162,6 +162,7 @@ def load_disk_images(dataset, X_res, Y_res, Type):
         left = 102
         bottom = 430
         right = 480  
+         
         ## read the image corresponding to the path
         try:
             imagePath = image_path ## for regular code 
@@ -381,3 +382,48 @@ def plot_history(history, path, Model,Network= None,res =None):
 
     plt.show()
 
+    
+def custom_augmentation(np_tensor):
+    
+    '''
+    This function is called to crop the images when the images are loaded 
+    using the ImageDataGenerator Keras function. This custom augmentation function only works for
+    3 res as given below. For other resolution the image needs to the cropped appropiately.
+    
+    '''
+    
+    # # # dimensions for cropping the image
+    if X_res == 128:
+    
+      top = 20
+      left = 25
+      bottom = 110
+      right = 90
+      image = np.squeeze(np_tensor) 
+      crop_image = image[top:bottom, left:right]
+      crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
+      crop_image = k.preprocessing.image.img_to_array(crop_image)
+
+    if X_res == 256:
+    
+      top = 40
+      left = 50
+      bottom = 220
+      right = 180
+      image = np.squeeze(np_tensor) 
+      crop_image = image[top:bottom, left:right]
+      crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
+      crop_image = k.preprocessing.image.img_to_array(crop_image)
+    
+    if X_res == 512:
+
+      top = 60
+      left = 90
+      bottom = 450
+      right = 380
+      image = np.squeeze(np_tensor) 
+      crop_image = image[top:bottom, left:right]
+      crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
+      crop_image = k.preprocessing.image.img_to_array(crop_image)      
+
+    return crop_image

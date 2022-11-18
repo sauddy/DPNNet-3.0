@@ -1,4 +1,3 @@
-####### RESNET50
 # import the necessary packages
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import BatchNormalization
@@ -11,6 +10,12 @@ from tensorflow.keras.layers import Flatten
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
 from tensorflow.keras import regularizers
+from tensorflow.keras import layers
+
+## Modules for hyperparameter tuning keras-tuner
+import keras_tuner as kt
+from keras_tuner import HyperModel
+import tensorflow as tf
 
 
 # modules added for the RESNET50
@@ -79,26 +84,28 @@ def alexnet(width, height, depth, classes=None,regress=False,multi_label=False,c
     XX = Flatten()(x)
    
     if classification==True:
-      print("A new fully Connexted layer is added")
+      # print("A new fully Connexted layer is added")
        ## Adding a Fully connected layer for classification
-      # X = BatchNormalization(axis=1)(X) 
-      Xclas = Dense(20, kernel_initializer='he_uniform', activation='relu')(XX)
-      print("CNN is used for classification")
+      Xclas = XX
+      
+      Xclas = Dense(100, kernel_initializer='he_uniform', activation='relu')(Xclas)
+      # Xclas = BatchNormalization(axis=1)(Xclas) 
+      print("INFO:CNN is used for classification")
       if option ==1:
-        print("Using Softmax")
+        print("Additional INFO:Using Softmax for classification")
         Xclas = Dense(units=classes, activation='softmax')(Xclas) 
       else:  
-        print("Using Sigmoid activation")
+        print("Additional INFO: Using Sigmoid activation for classification")
         Xclas = Dense(units=classes, name='cla',activation='sigmoid')(Xclas)
       out_clas = Xclas 
 
     if regress == True:
-      print("INFO: CNN is used for regression")
+      print("INFO:CNN is used for regression")
       if multi_label==False:           
         Xreg = Dense(1, activation='linear', name='reg', kernel_initializer = glorot_uniform(seed=0))(XX)
       if multi_label==True: 
         ## 28 Feb 2022 added the multi-label output 
-        print("INFO:Multiple Labels are optimised")
+        print("INFO: Note Multiple Labels are optimised during regression")
         Xreg = Dense(3, activation='linear', name='reg', kernel_initializer = glorot_uniform(seed=0))(XX)
         out_reg = Xreg
     # else:
@@ -176,26 +183,28 @@ def cnn_vgg(width, height, depth, classes=None,regress=False,multi_label=False,c
     XX = Flatten()(x)
    
     if classification==True:
-      print("A new fully Connexted layer is added")
+      # print("A new fully Connexted layer is added")
        ## Adding a Fully connected layer for classification
-      # X = BatchNormalization(axis=1)(X) 
-      Xclas = Dense(20, kernel_initializer='he_uniform', activation='relu')(XX)
-      print("CNN is used for classification")
+      Xclas = XX
+      
+      Xclas = Dense(100, kernel_initializer='he_uniform', activation='relu')(Xclas)
+      # Xclas = BatchNormalization(axis=1)(Xclas) 
+      print("INFO:CNN is used for classification")
       if option ==1:
-        print("Using Softmax")
+        print("Additional INFO:Using Softmax for classification")
         Xclas = Dense(units=classes, activation='softmax')(Xclas) 
       else:  
-        print("Using Sigmoid activation")
+        print("Additional INFO: Using Sigmoid activation for classification")
         Xclas = Dense(units=classes, name='cla',activation='sigmoid')(Xclas)
       out_clas = Xclas 
 
     if regress == True:
-      print("INFO: CNN is used for regression")
+      print("INFO:CNN is used for regression")
       if multi_label==False:           
         Xreg = Dense(1, activation='linear', name='reg', kernel_initializer = glorot_uniform(seed=0))(XX)
       if multi_label==True: 
         ## 28 Feb 2022 added the multi-label output 
-        print("INFO:Multiple Labels are optimised")
+        print("INFO: Note Multiple Labels are optimised during regression")
         Xreg = Dense(3, activation='linear', name='reg', kernel_initializer = glorot_uniform(seed=0))(XX)
         out_reg = Xreg
     # else:
@@ -220,7 +229,7 @@ def cnn_vgg(width, height, depth, classes=None,regress=False,multi_label=False,c
 
     return modelvgg
 
-
+####### RESNET50
 
 #identity_block
 
@@ -321,7 +330,7 @@ def convolutional_block(X, f, filters, stage, block, s = 2):
     X = Activation('relu')(X)
     
     return X
-def ResNet50(width, height, depth,classes=None,regress=False,multi_label=False,classification=False,option=None):
+def Resnet50(width, height, depth,classes=None,regress=False,multi_label=False,classification=False,option=None):
     """
     Implementation of the popular ResNet50 the following architecture:
     CONV2D -> BATCHNORM -> RELU -> MAXPOOL -> CONVBLOCK -> IDBLOCK*2 -> CONVBLOCK -> IDBLOCK*3
@@ -385,28 +394,39 @@ def ResNet50(width, height, depth,classes=None,regress=False,multi_label=False,c
     ## made the changes on 15 Feb 2021
     # output layer
     XX = Flatten()(X)
+    # XX = layers.GlobalAveragePooling2D(name="avg_pool")(X)
+    XX = Dense(100, kernel_initializer='he_uniform', activation='relu')(XX) 
    
     if classification==True:
-      print("A new fully Connexted layer is added")
+      # print("A new fully Connexted layer is added")
        ## Adding a Fully connected layer for classification
-      # X = BatchNormalization(axis=1)(X) 
-      Xclas = Dense(20, kernel_initializer='he_uniform', activation='relu')(XX)
-      print("CNN is used for classification")
+      Xclas = XX
+      Xclas = BatchNormalization(axis=1)(Xclas)   
+      top_dropout_rate = 0.30
+      # Xclas = layers.Dropout(top_dropout_rate, name="top_dropout1")(Xclas)  
+      Xclas = Dense(50, kernel_initializer='he_uniform', activation='relu')(Xclas)
+      Xclas = BatchNormalization(axis=1)(Xclas)
+      # top_dropout_rate = 0.20
+      # Xclas = layers.Dropout(top_dropout_rate, name="top_dropout2")(Xclas)
+      Xclas = Dense(20, kernel_initializer='he_uniform', activation='relu')(Xclas)
+      Xclas = BatchNormalization(axis=1)(Xclas)
+        
+      print("INFO:CNN is used for classification")
       if option ==1:
-        print("Using Softmax")
+        print("Additional INFO:Using Softmax for classification")
         Xclas = Dense(units=classes, activation='softmax')(Xclas) 
       else:  
-        print("Using Sigmoid activation")
+        print("Additional INFO: Using Sigmoid activation for classification")
         Xclas = Dense(units=classes, name='cla',activation='sigmoid')(Xclas)
       out_clas = Xclas 
 
     if regress == True:
-      print("CNN is used for regression")
+      print("INFO:CNN is used for regression")
       if multi_label==False:           
         Xreg = Dense(1, activation='linear', name='reg', kernel_initializer = glorot_uniform(seed=0))(XX)
       if multi_label==True: 
         ## 28 Feb 2022 added the multi-label output 
-        print("INFO:Multiple Labels are optimised")
+        print("INFO: Note Multiple Labels are optimised during regression")
         Xreg = Dense(3, activation='linear', name='reg', kernel_initializer = glorot_uniform(seed=0))(XX)
         out_reg = Xreg
     # else:
@@ -416,8 +436,7 @@ def ResNet50(width, height, depth,classes=None,regress=False,multi_label=False,c
     
    
 
-
-    # Create model
+    #### Create model ###
 
     if classification == True and regress == True:
       print("INFO: Performing both regression and classification -- Model Training")
@@ -432,3 +451,267 @@ def ResNet50(width, height, depth,classes=None,regress=False,multi_label=False,c
       modelresnet = Model(inputs = X_input, outputs = X)
 
     return modelresnet
+
+
+
+
+class TRANSFERLEARNINGHYPERMODEL(HyperModel):
+    
+    def __init__(self,width,height,depth,classes=None,regress=False,multi_label=False,classification=False,option=None,transfer_model= None,init_lr=0.001,epochs=10):
+          self.width = width
+          self.height = height
+          self.depth = depth
+          self.classes = classes
+          self.regress = regress
+          self.multi_label = multi_label
+          self.classification = classification
+          self.option = option
+          self.transfer_model = transfer_model
+          self.init_lr = init_lr
+          self.epochs = epochs
+          print(self.transfer_model)
+    
+    def build(self, hp):
+
+          '''
+          This class is used to tune the hyperparameters for the classification part. It finds the hyperparemter for the layers succedign 
+          Transfer learning network. train the DPNNet Model
+          Here we use the pretrained weights from the Imagenet data set but are also further trained
+          
+          
+          Please note this here update the final layers to perform regress or classification
+          or both regression and classification together
+          
+          Input:  1. Dimension of the image [width,height,depth]
+                  2. Number of classsification classes if used for calssification
+                  3. Regress on or off
+                  4. Multilabel -- True for multi-label regression Default == False
+                  5. Classification -- True or False 
+                  6. Option is the argument to use either softmax (default) or sigmoid for classification
+                  7. Select the transfer Learning Model from Either 3 RESNET50 or Efficientnet0-7 models
+                  8. intial lr , default is 0.001
+                  9. the number of epochs for training. default in 10
+                  
+                  
+          Output : Model Build 
+          
+          '''
+          
+          ## Input layers
+          X_input = layers.Input(shape=(self.height, self.width, self.depth))
+          x = X_input
+          
+          if self.transfer_model == None:
+              self.transfer_model = EfficientNetB6
+              print("Please Select the Network that will be used-- By Default {} will be used".format(str.lower(self.transfer_model.__name__)))
+          
+          #### Selecting the model along with the pretrained weights
+          mod_name = self.transfer_model.__name__
+          print("INFO: Keras Model used is {}".format(mod_name))
+          print("Loading weights for {} since this notebook is not connected to internet".format(str.lower(mod_name)))
+          
+          try:
+            model = self.transfer_model(include_top=False,input_tensor=x, weights='preloaded_weights/'+str.lower(mod_name)+'_notop.h5')
+          except ValueError:
+            model =self.transfer_model(include_top=False,input_tensor=x,weights='preloaded_weights/'+str.lower(mod_name)+'_weights_tf_dim_ordering_tf_kernels_notop.h5')
+      
+              
+          print("IF the notebook is connected to internet then the weights can be directly downloaded-- Choose accordingly")
+    
+#           try:
+#               model = self.transfer_model(include_top=False,input_tensor=x, weights='imagenet')
+#           except ValueError:
+#               model = self.transfer_model(include_top=False,input_tensor=x, weights='imagenet')
+        
+          
+          # Freeze the pretrained weights
+          model.trainable = True
+
+          # Rebuild top
+
+          x = layers.GlobalAveragePooling2D(name="avg_pool")(model.output)
+          x = layers.BatchNormalization()(x)
+
+          top_dropout_rate = 0.2
+          x = layers.Dropout(top_dropout_rate, name="top_dropout")(x)
+
+          XX = Flatten()(x)
+          XX = Dense(100, kernel_initializer='he_uniform', activation='relu')(XX) 
+          # outputs = layers.Dense(classes, activation="softmax", name="pred")(x)
+
+
+          if self.classification==True:
+            print("INFO:CNN is used for regression ")
+            # print("A new fully Connexted layer is added")
+            ## Adding a Fully connected layer for classification
+            Xclas = XX
+           
+
+            for i in range(hp.Int('num_of_layers',min_value=1,max_value=8,step=1)):         
+              #providing range for number of neurons in hidden layers
+              Xclas = Dense(units=hp.Int('num_of_neurons_'+ str(i),min_value=10,max_value=40,step=5), kernel_initializer='he_uniform', activation='relu')(Xclas)
+          
+
+            Xclas = BatchNormalization(axis=1)(Xclas)
+
+            Xclas = Dropout(hp.Float('dropout_rate',min_value=0, max_value=0.4, step=0.05), name="classification_dropout")(Xclas)
+
+            Xclas = Dense(units=hp.Int('num_of_neurons',min_value=10,max_value=40,step=5), activation='relu')(Xclas)
+
+            if hp.Choice('activation', ['softmax', 'sigmoid']) == 'softmax':
+              Xclas = Dense(units=self.classes, activation='softmax', name='clas')(Xclas)
+            else:
+              Xclas = Dense(units=self.classes, activation='sigmoid', name='clas')(Xclas)
+
+            out_clas = Xclas 
+
+
+          if self.regress == True:
+            print("INFO:CNN is used for regression")
+            if self.multi_label==False:           
+              Xreg = Dense(1, activation='linear', name='reg', kernel_initializer = glorot_uniform(seed=0))(XX)
+            if self.multi_label==True: 
+              ## 28 Feb 2022 added the multi-label output 
+              print("INFO: Note Multiple Labels are optimised during regression")
+              Xreg = Dense(3, activation='linear', name='reg', kernel_initializer = glorot_uniform(seed=0))(XX)
+            
+            out_reg = Xreg
+          
+
+          ### Create model
+
+          optimizer = tf.keras.optimizers.Adam(self.init_lr, decay=self.init_lr/self.epochs)
+
+          if self.classification == True and self.regress == True:
+            print("INFO: Performing both regression and classification -- Model Training")
+            modelNEWCNN = Model(inputs = X_input,outputs=[out_reg, out_clas])
+            modelNEWCNN.compile(loss=['mean_squared_error','binary_crossentropy'],optimizer=optimizer,metrics=['mean_squared_error', 'accuracy'])
+          elif self.regress == False:
+            X = out_clas
+            print("INFO: Classification Model is being trained")
+            modelNEWCNN = Model(inputs = X_input, outputs = X)
+            modelNEWCNN.compile(loss='binary_crossentropy',optimizer=optimizer,metrics=['accuracy'])
+          elif self.classification is False:
+            X = out_reg
+            print("INFO: Regression Model is being trained")
+            modelNEWCNN = Model(inputs = X_input, outputs = X)
+            modelNEWCNN.compile(loss='mean_squared_error',
+                    optimizer=optimizer,
+                    metrics=['mean_absolute_error', 'mean_squared_error'])
+
+          return modelNEWCNN
+    
+    
+    
+def TRANSFERLEARNING(X_res, Y_res,depth,classes=None,regress=False,multi_label=False,classification=False,option=None,transfer_model= None):
+
+    '''
+    This function introduces the use of Transfer learning to train the DPNNet Model
+    Here we use the pretrained weights from the Imagenet data set
+    
+    Please note this here update the final layers to perform regress or classification
+    or both regression and classification together
+    
+    Input:  1. Dimension of the image [width,height,depth]
+            2. Number of classsification classes if used for calssification
+            3. Regress on or off
+            4. Multilabel -- True for multi-label regression Default == False
+            5. Classification -- True or False 
+            6. Option is the argument to use either softmax (default) or sigmoid for classification
+            7. Select the transfer Learning Model from Either 3 RESNET50 or Efficientnet0-7 models
+            
+            
+    Output : Model Build 
+    
+    '''
+    
+    ## Input layers
+    X_input = layers.Input(shape=(X_res, Y_res, depth))
+    x = X_input
+    
+    if transfer_model == None:
+        transfer_model = EfficientNetB6
+        print("Please Select the Network that will be used-- By Default {} will be used".format(str.lower(transfer_model.__name__)))
+    
+    #### Selecting the model along with the pretrained weights
+    mod_name = transfer_model.__name__
+    print("INFO: Keras Model used is {}".format(mod_name))
+    print("Loading weights for {} since this notebook is not connected to internet".format(str.lower(mod_name)))
+    
+    try:
+        model = transfer_model(include_top=False,input_tensor=x, weights='preloaded_weights/'+str.lower(mod_name)+'_notop.h5')
+    except ValueError:
+        model = transfer_model(include_top=False,input_tensor=x, weights='preloaded_weights/'+str.lower(mod_name)+'_weights_tf_dim_ordering_tf_kernels_notop.h5')
+    
+    print("IF the notebook is connected to internet then the weights can be directly downloaded-- Choose accordingly")
+    # try:
+    #     model = transfer_model(include_top=False,input_tensor=x, weights='imagenet')
+    # except ValueError:
+    #     model = transfer_model(include_top=False,input_tensor=x, weights='imagenet')
+    
+    # Freeze the pretrained weights
+    model.trainable = True
+
+    # Rebuild top
+
+    x = layers.GlobalAveragePooling2D(name="avg_pool")(model.output)
+    x = layers.BatchNormalization()(x)
+
+    top_dropout_rate = 0.2
+    x = layers.Dropout(top_dropout_rate, name="top_dropout")(x)
+
+    XX = Flatten()(x)
+    XX = Dense(100, kernel_initializer='he_uniform', activation='relu')(XX) 
+    # outputs = layers.Dense(classes, activation="softmax", name="pred")(x)
+
+
+    if classification==True:
+      # print("A new fully Connexted layer is added")
+       ## Adding a Fully connected layer for classification
+      Xclas = XX
+      # Xclas = BatchNormalization(axis=1)(Xclas)   
+      top_dropout_rate = 0.30
+      # Xclas = layers.Dropout(top_dropout_rate, name="top_dropout1")(Xclas)  
+      Xclas = Dense(50, kernel_initializer='he_uniform', activation='relu')(Xclas)
+      Xclas = BatchNormalization(axis=1)(Xclas)
+      # top_dropout_rate = 0.20
+      # Xclas = layers.Dropout(top_dropout_rate, name="top_dropout2")(Xclas)
+      Xclas = Dense(20, kernel_initializer='he_uniform', activation='relu')(Xclas)
+      Xclas = BatchNormalization(axis=1)(Xclas)
+        
+      print("INFO:CNN is used for classification")
+      if option ==1:
+          print("Additional INFO:Using Softmax for classification")
+          Xclas = Dense(units=classes,name='cla',activation='softmax')(Xclas) 
+      else:  
+          print("Additional INFO: Using Sigmoid activation for classification")
+          Xclas = Dense(units=classes, name='cla',activation='sigmoid')(Xclas)
+          out_clas = Xclas 
+
+
+    if regress == True:
+      print("INFO:CNN is used for regression")
+      if multi_label==False:           
+        Xreg = Dense(1, activation='linear', name='reg', kernel_initializer = glorot_uniform(seed=0))(XX)
+      if multi_label==True: 
+        ## 28 Feb 2022 added the multi-label output 
+        print("INFO: Note Multiple Labels are optimised during regression")
+        Xreg = Dense(3, activation='linear', name='reg', kernel_initializer = glorot_uniform(seed=0))(XX)
+        out_reg = Xreg
+    
+
+    ### Create model
+
+    if classification == True and regress == True:
+      print("INFO: Performing both regression and classification -- Model Training")
+      modelNEWCNN = Model(inputs = X_input,outputs=[out_reg, out_clas])
+    elif regress == False:
+      X = out_clas
+      print("INFO: Classification Model is being trained")
+      modelNEWCNN = Model(inputs = X_input, outputs = X)
+    elif classification is False:
+      X = out_reg
+      print("INFO: Regression Model is being trained")
+      modelNEWCNN = Model(inputs = X_input, outputs = X)
+
+    return modelNEWCNN
