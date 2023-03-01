@@ -173,7 +173,7 @@ parameter_df
 
 
 #### Desired Image resoltuion  and Batch Size #####
-X_res = Y_res =64
+X_res = Y_res = 128
 
 ## For random sampling from the images
 num_sims = 700 
@@ -181,10 +181,10 @@ axisymmetric = True
 num_ims_per_sim = 30  ## Choose the number of images from each FARGO3D sims
 
 ## Select the kind of Traning ## Both can be selected as well
-REG =False#True  ## When choosing regression
-CLA =True #False #False #True  ## When Choosing Clasiffication
+REG =True#True  ## When choosing regression
+CLA =False #False #False #True  ## When Choosing Clasiffication
 
-hyperparam_tune = True ## Only used when classification is true 
+hyperparam_tune = False ## Only used when classification is true 
 
 Cutoff_resolution = 64
 
@@ -334,7 +334,7 @@ if X_res >= Cutoff_resolution:
 #     datagen= ImageDataGenerator(preprocessing_function=custom_augmentation,samplewise_center=True, samplewise_std_normalization=True,rescale=1./255.,validation_split=0.15)
 #     datagen= ImageDataGenerator(preprocessing_function=custom_augmentation,featurewise_center=True,featurewise_std_normalization=True,rescale=1./255.,validation_split=0.15)
     if transfer_model == ResNet50:
-        datagen= ImageDataGenerator(preprocessing_function=custom_augmentation,rescale=1./255.,validation_split=0.15)
+        datagen= ImageDataGenerator(preprocessing_function=custom_augmentation,zca_epsilon = 100, zca_whitening=True,rescale=1./255.,validation_split=0.15)
     else:
         datagen= ImageDataGenerator(preprocessing_function=custom_augmentation,validation_split=0.15)
 
@@ -365,7 +365,7 @@ if X_res >= Cutoff_resolution:
     target_size=(X_res,Y_res))
 
     #### TESTING GENERATOR #####
-    test_datagen= k.preprocessing.image.ImageDataGenerator(preprocessing_function=custom_augmentation,rescale=1./255.)
+    test_datagen= k.preprocessing.image.ImageDataGenerator(preprocessing_function=custom_augmentation,zca_epsilon = 100, zca_whitening = True,rescale=1./255.)
     test_generator=test_datagen.flow_from_dataframe(
     dataframe=test,
     directory=None,
@@ -456,19 +456,18 @@ elif NETWORK == "TL":
         CNN = tuner_c.get_best_models(num_models=1)[0]
     else : 
         
-         CNN = ocn.TRANSFERLEARNING(X_res, Y_res, 3,classes=3,regress = REG,multi_label=True,classification=CLA,option=None,transfer_model=transfer_model)
- 
-         optimizer = tf.keras.optimizers.Adam(init_lr, decay=init_lr/epochs)
-
+         CNN = ocn.TRANSFERLEARNING(X_res, Y_res, 3,classes=1,regress = REG,multi_label=True,classification=CLA,option=None,transfer_model=transfer_model,
+                                                   init_lr=init_lr,epochs=epochs)
 
 
 # ## Training
 
-# In[11]:
+# In[ ]:
 
 
 if REG == True and CLA ==False:
     
+    optimizer = tf.keras.optimizers.Adam(init_lr, decay=init_lr/epochs)
     CNN.compile(loss='mean_squared_error',
                     optimizer=optimizer,
                     metrics=['mean_absolute_error', 'mean_squared_error'])
@@ -519,7 +518,7 @@ if REG == True and CLA ==True:
 
 # ## Saving the network and the loss history for future use
 
-# In[12]:
+# In[13]:
 
 
 hist_df = pd.DataFrame(CNN_history.history)  ## converting to dataframe for future usels
@@ -550,7 +549,7 @@ else:
 
 # # Loading the model
 
-# In[13]:
+# In[14]:
 
 
 if NETWORK == "TL":
@@ -573,7 +572,7 @@ else:
 
 # ### Model Predictions and Results for the regression and Classification
 
-# In[14]:
+# In[27]:
 
 
 test_index = 41 # 550  #550 ##210
@@ -589,26 +588,20 @@ else:
 pred_CNN[test_index]
 
 
-# In[79]:
+# In[37]:
 
 
-predictions = []
-truth = []
-
-for i in range(3151):
-    test_index = i # 550  #550 ##210#
-    predictions.append(pred_CNN[test_index].item())
-    truth.append(test['Planet_Count'].iloc[test_index])
-    # plt.imshow(testImagesX[test_iclass_mode])
-    if REG == True:
-        print("The predicted Values are {} and \nThe True values are \n{} ".format(pred_CNN[test_index],test_labels.iloc[test_index]))
-    elif CLA == True:
-        print("The predicted prbability of the presence of planets are {} and \nThe True values are \n{} ".format(pred_CNN[test_index],test['Planet_Count'].iloc[test_index]))
-        print("The predicted Values are {} and \nThe True values are \n{} ".format(pred_CNN[test_index],test_labels.iloc[test_index]))
+test_index = 1000 # 550  #550 ##210#
+# plt.imshow(testImagesX[test_iclass_mode])
+if REG == True:
+    print("The predicted Values are {} and \nThe True values are \n{} ".format(pred_CNN[test_index],test_labels.iloc[test_index]))
+elif CLA == True:
+    print("The predicted prbability of the presence of planets are {} and \nThe True values are \n{} ".format(pred_CNN[test_index],test['Planet_Count'].iloc[test_index]))
+    print("The predicted Values are {} and \nThe True values are \n{} ".format(pred_CNN[test_index],test_labels.iloc[test_index]))
     
 
 
-# In[50]:
+# In[22]:
 
 
 ###fc_mean_squared_error fc_accuracy dense_3_mean_squared_error dense_3_accuracy
@@ -688,7 +681,7 @@ if REG == True and CLA == True:
     plt.savefig('figures/'+plot_name+'_cr.png')
 
 
-# In[93]:
+# In[23]:
 
 
 tp = pd.DataFrame(
@@ -698,62 +691,82 @@ tp = pd.DataFrame(
 tp
 
 
-# In[107]:
+# In[24]:
 
 
 np.mean(tp['Truth']-tp['Predictions'])
 
 
-# In[95]:
+# In[25]:
 
 
 tp1 = tp.loc[tp['Truth'] == 1]
 tp1
 
 
-# In[96]:
+# In[26]:
 
 
 np.mean(tp1['Truth']-tp1['Predictions'])
 
 
-# In[98]:
+# In[27]:
 
 
 tp2 = tp.loc[tp['Truth'] == 2]
 tp2
 
 
-# In[100]:
+# In[28]:
 
 
 np.mean(tp2['Truth']-tp2['Predictions'])
 
 
-# In[101]:
+# In[29]:
 
 
 tp3 = tp.loc[tp['Truth'] == 3]
 tp3
 
 
-# In[102]:
+# In[30]:
 
 
 np.mean(tp3['Truth']-tp3['Predictions'])
 
 
-# In[103]:
+# In[31]:
 
 
 tp4 = tp.loc[tp['Truth'] == 4]
 tp4
 
 
-# In[108]:
+# In[32]:
 
 
 np.mean(tp4['Truth']-tp4['Predictions'])
+
+
+# In[55]:
+
+
+from tensorflow.keras.preprocessing import image
+import tensorflow as tf
+from tensorflow.keras.applications.resnet50 import preprocess_input, decode_predictions
+
+img_path = '/Users/subhrat/Downloads/unseen_data/' + 'hltau_vla.jpg' # hltau_vla.jpg HD163296.jpg IM_Lup_ALMA_NRAO.jpg 1.jpg 2.jpg image_1.png
+img = image.load_img(img_path, target_size=(X_res, Y_res))
+# top,left,bottom,right = 20,25,110,90
+# img = img.crop((left, top, right, bottom))
+plt.imshow(img)
+plt.show()
+img_array = image.img_to_array(img)
+img_batch = np.expand_dims(img_array, axis=0)
+img_preprocessed = preprocess_input(img_batch)
+prediction = CNN.predict(img_preprocessed)/255
+prediction
 
 
 # In[ ]:
