@@ -89,9 +89,9 @@ def parse_dataset(dataset_path, filtering=True,drop=None):
     dataset["file"] = images
     return dataset
 
-def process_the_disk_attributes(train, test, path,multi_label=None):
+def process_the_disk_attributes(train, test, val, path,multi_label=None):
 
-    ''' Input : train or test dataset
+    ''' Input : train or test or val dataset
         path : to store the stats file
         Output : Return normalized data z normalization is used
     '''
@@ -101,6 +101,7 @@ def process_the_disk_attributes(train, test, path,multi_label=None):
         print("Droping the irrelevant columns ")
         train  = train.drop(columns=['image_path']) ## dropping the necessary files
         test   = test.drop(columns=['image_path']) ## dropping the necessary files
+        val   = val.drop(columns=['image_path']) ## dropping the necessary files
         # train  = train.drop(columns=['Sample#', 'image_path']) ## dropping the necessary files
         # test   = test.drop(columns=['Sample#', 'image_path']) ## dropping the necessary files
     except KeyError :
@@ -110,6 +111,7 @@ def process_the_disk_attributes(train, test, path,multi_label=None):
       print("INFO: considering only planet1 as output")
       train_stats = train.describe()
       train_stats.pop("Planet_Mass1")
+      train_stats.pop("Planet_Count")
       train_stats = train_stats.transpose()
 
       train_stats.to_csv(path+'data_folder/train_stats.csv')
@@ -117,12 +119,20 @@ def process_the_disk_attributes(train, test, path,multi_label=None):
       ## The labels are not normalized
       train_labels = train.pop("Planet_Mass1")
       test_labels = test.pop("Planet_Mass1")
+      val_labels = val.pop("Planet_Mass1")
+        
+      Y_train = train.pop("Planet_Count")
+      Y_val = val.pop("Planet_Count")
+      Y_test = test.pop("Planet_Count")
+    
+    
     else:
       print("INFO: considering multiple planets as output")
       train_stats = train.describe()
       train_stats.pop("Planet_Mass1")
       train_stats.pop("Planet_Mass2")
       train_stats.pop("Planet_Mass3")
+      train_stats.pop("Planet_Count")
       train_stats = train_stats.transpose()
 
       
@@ -130,22 +140,80 @@ def process_the_disk_attributes(train, test, path,multi_label=None):
 
 
       train_labels = train[["Planet_Mass1","Planet_Mass2","Planet_Mass3"]]
+      val_labels = val[["Planet_Mass1","Planet_Mass2","Planet_Mass3"]]
       test_labels = test[["Planet_Mass1","Planet_Mass2","Planet_Mass3"]]
-      train = train.drop(columns=["Planet_Mass1","Planet_Mass2","Planet_Mass3"])
-      test = test.drop(columns=["Planet_Mass1","Planet_Mass2","Planet_Mass3"])
+      
+      Y_train = train.pop("Planet_Count")
+      Y_val = val.pop("Planet_Count")
+      Y_test = test.pop("Planet_Count")      
+      
+#       train = train.drop(columns=["Planet_Mass1","Planet_Mass2","Planet_Mass3", "Planet_Count"])
+#       val = val.drop(columns=["Planet_Mass1","Planet_Mass2","Planet_Mass3", "Planet_Count"])
+#       test = test.drop(columns=["Planet_Mass1","Planet_Mass2","Planet_Mass3", "Planet_Count"])
 
 
     def norm(x):
         return (x - train_stats['mean']) / train_stats['std']
     normed_train_data = norm(train)
+    
+    normed_val_data = norm(val)
 
     normed_test_data = norm(test)
     # print(normed_train_data)
     print("[INFO] Done...")
 
-    return normed_train_data, normed_test_data, train_labels, test_labels
+    return normed_train_data, normed_test_data, normed_val_data, train_labels, test_labels, val_labels, Y_train, Y_val, Y_test
 
+def custom_augmentation(np_tensor, X_res, Y_res):
+    
+    '''
+    This function is called to crop the images when the images are loaded 
+    using the ImageDataGenerator Keras function. This custom augmentation function only works for
+    3 res as given below. For other resolution the image needs to the cropped appropiately.
+    
+    '''
+    
+    # # # dimensions for cropping the image
+    if X_res == 128:
+    
+      top = 80
+      left = 170
+      bottom = 410
+      right = 410
+      image = np.squeeze(np_tensor) 
+      crop_image = image[top:bottom, left:right]
+      crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
+      crop_image = k.preprocessing.image.img_to_array(crop_image)[:,:,::-1]/255.
+      datagen = k.preprocessing.image.ImageDataGenerator(featurewise_center=True, zca_whitening=True)
+      crop_image = datagen.standardize(crop_image)
+    
+    if X_res == 256:
+    
+      top = 40
+      left = 50
+      bottom = 220
+      right = 180
+      image = np.squeeze(np_tensor) 
+      crop_image = image[top:bottom, left:right]
+      crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
+      crop_image = k.preprocessing.image.img_to_array(crop_image)[:,:,::-1]/255.  # [:,:,::-1] converts opencv BRG convention to RBG
+      datagen = k.preprocessing.image.ImageDataGenerator(featurewise_center=True, zca_whitening=True)
+      crop_image = datagen.standardize(crop_image)
+    
+    if X_res == 512:
 
+      top = 60
+      left = 90
+      bottom = 450
+      right = 380
+      image = np.squeeze(np_tensor) 
+      crop_image = image[top:bottom, left:right]
+      crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
+      crop_image = k.preprocessing.image.img_to_array(crop_image)[:,:,::-1]/255. 
+      datagen = k.preprocessing.image.ImageDataGenerator(featurewise_center=True, zca_whitening=True)
+      crop_image = datagen.standardize(crop_image)
+
+    return crop_image
 
 def load_disk_images(dataset, X_res, Y_res, Type):
 
@@ -155,34 +223,19 @@ def load_disk_images(dataset, X_res, Y_res, Type):
 
     print("[INFO] Loading images from {} data..".format(Type))
     images = []
-    for image_path in dataset["image_path"]:    
-
-        # dimensions for cropping the image
-        top = 54
-        left = 102
-        bottom = 430
-        right = 480  
+    for image_path in dataset["image_path"]:
          
         ## read the image corresponding to the path
         try:
             imagePath = image_path ## for regular code 
-            # imagePath = '..'+image_path[33:] ## when reading path from the ones gnerated in COLAB as the address in COLAB gets modified
-            image = cv2.imread(imagePath)  
-            crop_image = image[left:right, top:bottom]
+            image = cv2.imread(imagePath)
+            
         except TypeError:
             imagePath = '..'+image_path[33:] ## when reading path from the ones gnerated in COLAB as the address in COLAB gets modified
-            image = cv2.imread(imagePath) 
-            crop_image = image[left:right, top:bottom]
+            image = cv2.imread(imagePath)
+            
         
-        crop_image = image[top:bottom, left:right]
-
-        crop_image = cv2.resize(crop_image, (X_res, Y_res))  # downsizing the image
-        # crop_image = crop_image/255.0 # scaling
-        
-        ## ADDED for image normalization (standadization) on 31 Jan 2021
-        crop_image = k.preprocessing.image.img_to_array(crop_image) ## changing to numpy array
-        datagen = k.preprocessing.image.ImageDataGenerator(samplewise_center=True, samplewise_std_normalization=True,rescale= 1.0/255.0)
-        crop_image = datagen.standardize(np.copy(crop_image))
+        crop_image = custom_augmentation(image, X_res, Y_res)
         # print("working")
 
         ## hist Normalization not used yet
@@ -381,49 +434,3 @@ def plot_history(history, path, Model,Network= None,res =None):
         #plt.savefig(path1+'/MSEvalidation_loss_Hybrid.pdf', format='pdf', dpi=300)
 
     plt.show()
-
-    
-def custom_augmentation(np_tensor):
-    
-    '''
-    This function is called to crop the images when the images are loaded 
-    using the ImageDataGenerator Keras function. This custom augmentation function only works for
-    3 res as given below. For other resolution the image needs to the cropped appropiately.
-    
-    '''
-    
-    # # # dimensions for cropping the image
-    if X_res == 128:
-    
-      top = 20
-      left = 25
-      bottom = 110
-      right = 90
-      image = np.squeeze(np_tensor) 
-      crop_image = image[top:bottom, left:right]
-      crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
-      crop_image = k.preprocessing.image.img_to_array(crop_image)
-
-    if X_res == 256:
-    
-      top = 40
-      left = 50
-      bottom = 220
-      right = 180
-      image = np.squeeze(np_tensor) 
-      crop_image = image[top:bottom, left:right]
-      crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
-      crop_image = k.preprocessing.image.img_to_array(crop_image)
-    
-    if X_res == 512:
-
-      top = 60
-      left = 90
-      bottom = 450
-      right = 380
-      image = np.squeeze(np_tensor) 
-      crop_image = image[top:bottom, left:right]
-      crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
-      crop_image = k.preprocessing.image.img_to_array(crop_image)      
-
-    return crop_image
