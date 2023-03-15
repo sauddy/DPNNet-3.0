@@ -177,9 +177,9 @@ def custom_augmentation(np_tensor, X_res, Y_res):
     if X_res == 128:
     
       top = 80
-      left = 170
+      left = 130
       bottom = 410
-      right = 410
+      right = 440
       image = np.squeeze(np_tensor) 
       crop_image = image[top:bottom, left:right]
       crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
@@ -189,10 +189,10 @@ def custom_augmentation(np_tensor, X_res, Y_res):
     
     if X_res == 256:
     
-      top = 40
-      left = 50
-      bottom = 220
-      right = 180
+      top = 80
+      left = 130
+      bottom = 410
+      right = 440
       image = np.squeeze(np_tensor) 
       crop_image = image[top:bottom, left:right]
       crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
@@ -202,10 +202,10 @@ def custom_augmentation(np_tensor, X_res, Y_res):
     
     if X_res == 512:
 
-      top = 60
-      left = 90
-      bottom = 450
-      right = 380
+      top = 80
+      left = 130
+      bottom = 410
+      right = 440
       image = np.squeeze(np_tensor) 
       crop_image = image[top:bottom, left:right]
       crop_image = cv2.resize(crop_image, (X_res, Y_res)) 
