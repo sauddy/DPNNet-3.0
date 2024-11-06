@@ -17,6 +17,6 @@ main.py - Script for a GUI based web tool for the models produced by DPNNET-RT.i
 ```
 streamlit run main.py
 ```
-
+More instruction in the working tips drop down in the web tool.
 
 Please contact Subhrat Praharaj (s.praharaj@uva.nl) for the models used in the paper or the simulated image dataset of 105,000 images used for the training.
