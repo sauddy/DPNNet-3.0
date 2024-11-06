@@ -1,3 +1,5 @@
-# DPNNet-RT
+## DPNNet-3.0
 
-This notebook is created to build a ML model that can Classify the number of hidden planets and Predict the corresponding planet mass for each of the planet from the protoplanetary disk images directly
+This project is build a branched CNN model that can classify the number of hidden planets and predict the corresponding planet mass and position range for each of the planet from the protoplanetary disk images directly.
+
+
